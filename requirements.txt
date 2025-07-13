@@ -1,0 +1,6 @@
+fastapi[all]
+sqlalchemy
+psycopg2-binary
+alembic
+python-dotenv
+uvicorn
