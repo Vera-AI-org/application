@@ -1,0 +1,30 @@
+# File to be used in a "production" or deployment environment
+# To run: docker-compose -f docker-compose.prod.yml up -d
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db_prod
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${DB_CONTAINER_PORT}:${DB_PORT}"
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+
+  api:
+    image: ${IMAGE_SOURCE_URL}
+    container_name: vera-ai-api-prod
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - "${API_CONTAINER_PORT}:${API_PORT}"
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${API_PORT}
+
+volumes:
+  postgres_data_prod:
