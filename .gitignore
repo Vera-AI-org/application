@@ -210,3 +210,9 @@ __marimo__/
 
 .env
 .env_prod
+
+# firebase-admin-sdk.json
+firebase-admin-sdk.json
+
+# firebase service account key
+serviceAccountKey.json
