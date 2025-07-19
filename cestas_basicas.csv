@@ -1,0 +1,31 @@
+nome,tem_recibo,tem_assinatura,observacao
+RICARDO GOMES DO NASCIMENTO,True,True,Sem observação
+WAGNER DE SOUZA DINIZ,True,True,Sem observação
+WALBER FERREIRA DE LIMA,True,True,Sem observação
+RICARDO DE LIMA SOUSA,True,True,Sem observação
+JARBAS BRENO ALMEIDA DA SILVA,True,True,Sem observação
+JOAO BATISTA ISIDRO,True,True,Sem observação
+JOSE ALVES PEREIRA,True,True,Sem observação
+JOSÉ DE ARIMATEIA CARNEIRO DE FARIAS,True,True,Sem observação
+JOSE FLAVIO DA SILVA,True,True,Sem observação
+LEONARDO ALBUQUERQUE GOUVEIA,True,True,Sem observação
+MARCONI DO NASCIMENTO PEREIRA,True,True,Sem observação
+MOSEANO JACO DE SOUZA,True,True,Sem observação
+OSIMAR DA SILVA,True,True,Sem observação
+PATRICIO PAULO FERREIRA,True,False,Nomes não correspondem: PATRICIO PAULO FERREIRA (recibo) vs FABRICIO PAULO FERREIRA DE FRANCA (assinatura)
+PAULO RICARDO DE ARRUDA,True,True,Nomes não correspondem: PAULO RICARDO DE ARRUDA (recibo) vs PAULO RICARDO DE ARRUADA (assinatura)
+RAFAEL DA SILVA LIMA,True,True,Sem observação
+AILTON HUMBERTO FARIAS DE ALBUQUERQUE,True,True,Sem observação
+ALEX DOS SANTOS FALCAO,True,True,Sem observação
+ALEX FERREIRA DA SILVA,True,True,Sem observação
+DAVID DE ARAUJO LEITE,True,True,Sem observação
+DEMETRIUS BARBOSA ALVES DE MELLO,True,True,Sem observação
+DIVALDO PEREIRA DE ANDRADE,True,True,Sem observação
+EDVALDO FERNANDES DE OLIVEIRA,True,True,Sem observação
+ERIVALDO BATISTA DE OLIVEIRA,True,True,Sem observação
+EVERTON DE SOUZA ROCHA,True,True,Sem observação
+GIOVANI SANTOS ARAUJO,True,True,Nomes não correspondem: GIOVANI SANTOS ARAUJO (recibo) vs GIOVANNI SANTOS ARAUJO (assinatura)
+IVONALDO SILVA CABRAL,True,True,Sem observação
+JAIRAM SOUSA SOARES,True,True,Sem observação
+ANTONIO FRANCISCO FILHO,False,False,Não consta na lista de recibos da cesta básica
+OUDERLEY DE SOUSA SANTOS,False,False,Não consta na lista de recibos da cesta básica

@@ -1,0 +1,4 @@
+from src.extraction.extract_cestabasica import main as extract_cestabasica
+from src.extraction.extract_folhadeponto import extract_ponto_funcionarios
+from src.extraction.extract_listafuncionario import extract_funcionarios
+from src.extraction.extract_valetransporte import extract_contra_cheque
