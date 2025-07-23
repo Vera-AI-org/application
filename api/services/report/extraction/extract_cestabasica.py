@@ -4,6 +4,9 @@ import json
 import logging 
 import argparse
 import pymupdf
+import difflib
+import re
+import unicodedata
 
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
@@ -14,8 +17,6 @@ def extrair_texto_pdf(caminho_pdf):
         for pagina in pdf.pages:
             paginas.append(pagina.extract_text())
     return paginas
-
-import re
 
 def separate_pdf_content_from_list(contents):
     recibos = []
@@ -51,12 +52,6 @@ def save_lists_to_files(recibos, assinaturas, recibo_file, assinatura_file):
     with open(assinatura_file, 'w', encoding='utf-8') as f:
         for i, assinatura in enumerate(assinaturas, 1):
             f.write(f"Assinatura {i}:\n{assinatura}\n\n{'-'*50}\n\n")
-
-
-
-import difflib
-import re
-import unicodedata
 
 def normalize_name(name):
     name = ''.join(c for c in unicodedata.normalize('NFD', name) if unicodedata.category(c) != 'Mn').lower()

@@ -5,6 +5,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from .processing.report_processor import ReportDataProcessor
 from models.report_model import Report
+from .llm.llm_service import LLMService
 
 BASE_TEMP_DIR = Path("files/temp")
 
@@ -31,7 +32,12 @@ class ReportService:
         try:
             saved_file_paths = await self._save_files_to_unique_dir(files, request_temp_dir)
             
-            processor = ReportDataProcessor(file_paths=saved_file_paths, output_dir=request_temp_dir)
+            llm_service = LLMService()
+            processor = ReportDataProcessor(
+                file_paths=saved_file_paths,
+                output_dir=request_temp_dir,
+                llm_service=llm_service
+            )
             final_df, analysis_text = processor.run()
             
             new_report = Report(

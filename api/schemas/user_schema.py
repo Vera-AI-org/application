@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 
 class UserResponse(BaseModel):
+    id: int
     uid: str
     email: EmailStr
 

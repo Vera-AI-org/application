@@ -1,24 +1,30 @@
 import logging
+import sys
 from enum import StrEnum
 
-LOG_FORMAT_DEBUG = "%(levelname)s:%(message)s:%(pathname)s:%(funcName)s:%(lineno)d"
+LOG_FORMAT = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 
-class LogLevels(StrEnum):
-    info = "INFO"
-    warning = "WARNING"
-    error = "ERROR"
-    debug = "DEBUG"
+class LogLevel(StrEnum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
 
-def configure_logging(log_level: str = LogLevels.error) -> None:
-    log_level = str(log_level).upper()
-    log_levels = [level.value for level in LogLevels]
+def get_logger(name: str) -> logging.Logger:
+    return logging.getLogger(name)
 
-    if log_level not in log_levels:
-        logging.basicConfig(level=LogLevels.error)
-        return
-    
-    if log_level == LogLevels.debug:
-        logging.basicConfig(level=LogLevels.debug, format=LOG_FORMAT_DEBUG)
-        return
-    
-    logging.basicConfig(level=log_level)
+def configure_logging(log_level: str = LogLevel.INFO) -> None:
+    level = log_level.upper()
+    if level not in LogLevel:
+        level = LogLevel.INFO
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+    logging.basicConfig(level=level, handlers=[handler])
+
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
+    logger = get_logger(__name__)
+    logger.info(f"Logging configured with level: {level}")

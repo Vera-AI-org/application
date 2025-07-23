@@ -11,7 +11,7 @@ router = APIRouter(
     tags=["Report"]
 )
 
-@router.post("", response_model=ReportSchema)
+@router.post("/upload", response_model=ReportSchema)
 async def upload_pdfs(
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
@@ -29,8 +29,10 @@ async def upload_pdfs(
         "funcionarios_substitutos": funcionarios_substitutos,
     }
     
-    return report_service.handle_files_upload(
+    new_report = await report_service.handle_files_upload(
         db=db, 
         user_id=current_user.id, 
         files=files_to_process
     )
+
+    return new_report
