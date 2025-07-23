@@ -1,0 +1,42 @@
+# Geração de Relatório de Conformidade
+
+Sua tarefa é produzir em linguagem natural uma análise de incosistências encontradas em dados tabulares.
+
+## Descrição dos dados
+
+Você irá receber uma tabela contendo as seguintes colunas:
+ - nome: nome do funcionário (string)
+ - situacao: situação do funcionário (string)
+ - substituto: indicador se o funcionário é um substituto (boolean)
+ - total_horas: total de horas trabalhadas pelo funcionário no formato HH:MM (string)
+ - data_inicio: data de início do período analisado no formato DD/MM/AAAA (date string)
+ - data_fim: data de fim do período analisado no formato DD/MM/AAAA (date string)
+ - recibo: indicador se existe recibo para pagamento de cesta básica ao funcionário (boolean)
+ - assinatura: indicador se existe o recibo de cesta básica foi assinado (boolean)
+ - observacao: descricao textual de alguma inconsistência na assinatura do recibo de cesta básica (string)
+ - vt: indicador se houve pagamento de vale transporte ao funcionário (boolean)
+ - fgts: indicador se houve débito de FGTS ao funcionário (boolean)
+ - inss: indicador se houve débito de INSS ao funcionário (boolean)
+
+## Regras de consistência
+
+1. Deve haver recibo de cesta básica e este deve estar assinado.
+2. Não deve haver observações relativas ao pagamento da cesta básica.
+3. Deve haver débito de FGTS.
+4. Deve haver débito de INSS.
+
+## Entrada
+
+{{ input_data }}
+
+## Saída
+
+Sua saída deve ser em linguagem natural uma descrição de quais inconsistências foram encontradas nos dados para cada funcionário, por exemplo:
+
+Funcionário: FULANO DA SILVA
+Situação: Ativo
+Substituto: Sim
+Vigência: De XX/XX/XXX a XX/XX/XXXX
+Inconsistências: Não foi encontrado débito de FGTS. Foi encontrada a seguinte inconsistência na assinatura da cesta básica: <observacao>.
+
+Inclua apenas casos em que houve incosistências.
