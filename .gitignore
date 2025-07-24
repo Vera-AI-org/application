@@ -216,3 +216,7 @@ firebase-admin-sdk.json
 
 # firebase service account key
 serviceAccountKey.json
+
+# temporary files
+
+/files/
