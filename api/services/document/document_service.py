@@ -4,10 +4,10 @@ import pymupdf4llm
 from pathlib import Path
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from .processing.report_processor import ReportDataProcessor
 from models.pattern_model import Pattern
 from .llm.llm_service import LLMService
 from core.logging import get_logger
+from models.document_model import Document
 
 logger = get_logger(__name__)
 

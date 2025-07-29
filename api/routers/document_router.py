@@ -31,8 +31,8 @@ async def upload_pdfs(
 async def generate_regex(
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
-    pattern: dict = dict(...),
-    document_id: int
+    pattern: dict = {},
+    document_id: int = -1
 ):
 
     new_pattern = await document_service.handle_generate_regex(
