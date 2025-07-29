@@ -8,6 +8,7 @@ from models.pattern_model import Pattern
 from .llm.llm_service import LLMService
 from core.logging import get_logger
 from models.document_model import Document
+import tempfile
 
 logger = get_logger(__name__)
 
@@ -18,9 +19,10 @@ class DocumentService:
 
     async def upload_file(self, file: UploadFile):
         md_text = await self._extractor_text_from_pdf_to_markdown(file)
+
         new_document = Document(
                 user_id=self.user_id,
-                document_md=md_text,
+                document_md=md_text, 
             )
         
         self.db.add(new_document)
@@ -31,14 +33,18 @@ class DocumentService:
 
 
     async def _extractor_text_from_pdf_to_markdown(self, file: UploadFile) -> str:
-        logger.info("Extracting text from pdf to markdown.")
-        file_bytes = await file.read()
-        md_text = pymupdf4llm.to_markdown(file_bytes)
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file.seek(0)
+            
+            md_text = pymupdf4llm.to_markdown(temp_file.name)
+
         return md_text
     
 
     async def generate_regex(self, pattern: dict, document_id: int):
-        name, regex = self._generate_regex_from_selected_text(pattern)
+        name, regex = await self._generate_regex_from_selected_text(pattern)
         new_pattern = Pattern(
                 user_id=self.user_id,
                 document_id= document_id,
@@ -54,7 +60,8 @@ class DocumentService:
     
     async def _generate_regex_from_selected_text(self, pattern: dict) -> str:
         llm_service = LLMService()
-        return llm_service.generate_regex(pattern)
+        name, regex = await llm_service.generate_regex(pattern)
+        return name, regex
         
     
     

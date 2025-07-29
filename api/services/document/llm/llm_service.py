@@ -24,7 +24,7 @@ class LLMService:
         return self.prompt_template.render(text=text, selected_texts=selected_texts)
 
     def generate_regex(self, pattern: dict, model: str = "openai:gpt-4o-mini") -> str:
-        name, text, selected_texts = pattern.values
+        name, text, selected_texts = pattern.values()
         
         prompt = self._generate_prompt(text, selected_texts)
         
