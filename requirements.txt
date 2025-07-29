@@ -18,4 +18,4 @@ aisuite
 jinja2
 pydantic-settings
 tabulate
-pymupdf
+pymupdf4llm

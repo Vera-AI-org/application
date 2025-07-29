@@ -13,8 +13,6 @@ class Pattern(Base):
     pattern = Column(String, nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
-
     updated_at = Column(DateTime, onupdate=func.now())
 
-
-    user = relationship("User", back_populates="reports")
+    user = relationship("User", back_populates="patterns")

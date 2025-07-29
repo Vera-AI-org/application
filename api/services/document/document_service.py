@@ -17,7 +17,7 @@ class DocumentService:
         self.user_id = user_id
 
     async def upload_file(self, file: UploadFile):
-        md_text = self._extractor_text_from_pdf_to_markdown(file)
+        md_text = await self._extractor_text_from_pdf_to_markdown(file)
         new_document = Document(
                 user_id=self.user_id,
                 document_md=md_text,
@@ -32,7 +32,7 @@ class DocumentService:
 
     async def _extractor_text_from_pdf_to_markdown(self, file: UploadFile) -> str:
         logger.info("Extracting text from pdf to markdown.")
-        file_bytes = file.read()
+        file_bytes = await file.read()
         md_text = pymupdf4llm.to_markdown(file_bytes)
         return md_text
     
