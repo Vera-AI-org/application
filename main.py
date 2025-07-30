@@ -14,7 +14,7 @@ app = FastAPI(
 
 origins = [
     "http://localhost:5173",
-    "*"
+    "https://web-client-alpha.vercel.app"   
 ]
 
 app.add_middleware(
