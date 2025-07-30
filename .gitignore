@@ -205,3 +205,18 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# .env
+
+.env
+.env_prod
+
+# firebase-admin-sdk.json
+firebase-admin-sdk.json
+
+# firebase service account key
+serviceAccountKey.json
+
+# temporary files
+
+/files/
