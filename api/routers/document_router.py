@@ -6,7 +6,9 @@ from core.firebase_auth import get_current_user
 from api.schemas.user_schema import UserResponse
 from api.schemas.document_schema import DocumentSchema
 from api.schemas.pattern_schema import PatternSchema
-from api.schemas.regex_generation_request import RegexGenerationRequest
+from api.DTO.regex_generation_request import RegexGenerationRequest
+
+
 router = APIRouter(
     prefix="/document",
     tags=["Document"]
@@ -36,13 +38,14 @@ async def generate_regex(
     document_id = request.documentId 
     
     pattern_data = request.selections[0]
+    is_section = request.is_section
 
-    print(pattern_data)
     new_pattern = await document_service.handle_generate_regex(
         db=db, 
         user_id=current_user.id, 
         pattern=pattern_data,
-        document_id= document_id
+        document_id= document_id,
+        is_section=is_section
     )
 
     return new_pattern

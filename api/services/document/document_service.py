@@ -43,13 +43,14 @@ class DocumentService:
         return md_text
     
 
-    async def generate_regex(self, pattern: dict, document_id: int):
+    async def generate_regex(self, pattern: dict, document_id: int, is_section: bool):
         name, regex = await self._generate_regex_from_selected_text(pattern)
         new_pattern = Pattern(
                 user_id= self.user_id,
                 document_id= document_id,
                 name=name,
                 pattern=regex,
+                is_section=is_section
             )
         
         self.db.add(new_pattern)
@@ -69,6 +70,6 @@ async def handle_file_upload(db: Session, user_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
     return await service.upload_file(file) 
 
-async def handle_generate_regex(db: Session, user_id: int, pattern: dict, document_id: int):
+async def handle_generate_regex(db: Session, user_id: int, pattern: dict, document_id: int, is_section: bool):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.generate_regex(pattern, document_id) 
+    return await service.generate_regex(pattern, document_id, is_section)
