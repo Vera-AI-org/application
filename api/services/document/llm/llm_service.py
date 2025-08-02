@@ -1,15 +1,15 @@
 import os
 from pathlib import Path
-import pandas as pd
-from aisuite import Client
+import google.generativeai as genai
 from jinja2 import Template
 
 class LLMService:
     def __init__(self):
-        if not os.getenv("OPENAI_API_KEY"):
-            raise ValueError("The variable OPENAI_API_KEY was not defined.")
+        # Verifica e configura a chave da API do Google
+        if not os.getenv("GOOGLE_API_KEY"):
+            raise ValueError("A variável de ambiente GOOGLE_API_KEY não foi definida.")
+        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
         
-        self.client = Client()
         self.prompt_template = self._load_prompt_template()
 
     def _load_prompt_template(self) -> Template:
@@ -18,26 +18,35 @@ class LLMService:
             with open(template_path, "r", encoding="utf-8") as file:
                 return Template(file.read())
         except FileNotFoundError:
-            raise FileNotFoundError(f"Template file not found in: {template_path}")
+            raise FileNotFoundError(f"Arquivo de template não encontrado em: {template_path}")
 
-    def _generate_prompt(self, text:str, selected_texts: list) -> str:
+    def _generate_prompt(self, text: str, selected_texts: list) -> str:
         return self.prompt_template.render(text=text, selected_texts=selected_texts)
 
-    def generate_regex(self, pattern: dict, model: str = "openai:gpt-4o-mini") -> str:
-        name, text, selected_texts = pattern.values()
-        
+    def generate_regex(self, pattern: dict, model: str = "gemini-1.5-flash-latest") -> str:
+        name = pattern.get("key")
+        text = pattern.get("values")
+        selected_texts = pattern.get("context")
         prompt = self._generate_prompt(text, selected_texts)
         
         try:
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                temperature= 0.9
+            # Instancia o modelo generativo
+            llm = genai.GenerativeModel(model)
+            
+            # Configura os parâmetros de geração, como a temperatura
+            generation_config = genai.types.GenerationConfig(
+                temperature=0.9
             )
-            regex = response.choices[0].message.content.strip() if response.choices else ""
+            
+            # Chama a API do Gemini
+            response = llm.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+            
+            # Extrai o texto da resposta
+            regex = response.text.strip()
             return name, regex
         except Exception as e:
-            print(f"Erro ao chamar a API do LLM: {e}")
-            return "Ocorreu um erro ao tentar gerar a análise."
+            print(f"Erro ao chamar a API do Gemini: {e}")
+            return name, "Ocorreu um erro ao tentar gerar a análise."
