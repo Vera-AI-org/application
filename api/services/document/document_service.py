@@ -46,21 +46,21 @@ class DocumentService:
     async def generate_regex(self, pattern: dict, document_id: int):
         name, regex = await self._generate_regex_from_selected_text(pattern)
         new_pattern = Pattern(
-                user_id=self.user_id,
+                user_id= self.user_id,
                 document_id= document_id,
                 name=name,
-                regex=regex,
+                pattern=regex,
             )
         
         self.db.add(new_pattern)
         self.db.commit()
         self.db.refresh(new_pattern)
-
         return new_pattern
     
     async def _generate_regex_from_selected_text(self, pattern: dict) -> str:
         llm_service = LLMService()
-        name, regex = await llm_service.generate_regex(pattern)
+        
+        name, regex = llm_service.generate_regex(pattern)
         return name, regex
         
     
