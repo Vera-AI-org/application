@@ -1,48 +1,74 @@
+import shutil
+import uuid
 import pymupdf4llm
-import tempfile
-from fastapi import UploadFile, HTTPException, status
+from pathlib import Path
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
+from models.pattern_model import Pattern
+from .llm.llm_service import LLMService
+from core.logging import get_logger
+from models.document_model import Document
+import tempfile
 
-from models import document_model
-from api.schemas import document_schema
+logger = get_logger(__name__)
 
-async def create_document(db: Session, user_id: int, file: UploadFile) -> document_schema.DocumentSchema:
-    if file.content_type != "application/pdf":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tipo de arquivo inválido. Apenas PDFs são aceitos."
-        )
+class DocumentService:
+    def __init__(self, db: Session, user_id: int):
+        self.db = db
+        self.user_id = user_id
 
-    try:
-        with tempfile.NamedTemporaryFile(delete=True, suffix=".pdf") as temp_file:
+    async def upload_file(self, file: UploadFile):
+        md_text = await self._extractor_text_from_pdf_to_markdown(file)
+
+        new_document = Document(
+                user_id=self.user_id,
+                document_md=md_text, 
+            )
+        
+        self.db.add(new_document)
+        self.db.commit()
+        self.db.refresh(new_document)
+
+        return new_document
+
+
+    async def _extractor_text_from_pdf_to_markdown(self, file: UploadFile) -> str:
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
             content = await file.read()
             temp_file.write(content)
             temp_file.seek(0)
             
             md_text = pymupdf4llm.to_markdown(temp_file.name)
 
-        if not md_text:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Não foi possível extrair conteúdo do PDF. O arquivo pode estar vazio ou corrompido."
+        return md_text
+    
+
+    async def generate_regex(self, pattern: dict, document_id: int):
+        name, regex = await self._generate_regex_from_selected_text(pattern)
+        new_pattern = Pattern(
+                user_id= self.user_id,
+                document_id= document_id,
+                name=name,
+                pattern=regex,
             )
-
-        new_document = document_model.Document(
-            user_id=user_id,
-            file_name=file.filename,
-            markdown_content=md_text
-        )
         
-        db.add(new_document)
-        db.commit()
-        db.refresh(new_document)
-
-        return new_document
-
-    except Exception as e:
-        db.rollback()
+        self.db.add(new_pattern)
+        self.db.commit()
+        self.db.refresh(new_pattern)
+        return new_pattern
+    
+    async def _generate_regex_from_selected_text(self, pattern: dict) -> str:
+        llm_service = LLMService()
         
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocorreu um erro ao processar o arquivo: {e}"
-        )
+        name, regex = llm_service.generate_regex(pattern)
+        return name, regex
+        
+    
+    
+async def handle_file_upload(db: Session, user_id: int, file: UploadFile):
+    service = DocumentService(db=db, user_id=user_id)
+    return await service.upload_file(file) 
+
+async def handle_generate_regex(db: Session, user_id: int, pattern: dict, document_id: int):
+    service = DocumentService(db=db, user_id=user_id)
+    return await service.generate_regex(pattern, document_id) 

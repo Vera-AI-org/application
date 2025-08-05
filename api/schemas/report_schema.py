@@ -2,10 +2,11 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Dict, Any
 
-class DocumentSchema(BaseModel):
+class ReportSchema(BaseModel):
     id: int
     user_id: int
-    document_md: str 
+    analysis: str | None
+    data: List[Dict[str, Any]]
     created_at: datetime
     updated_at: datetime | None
 
