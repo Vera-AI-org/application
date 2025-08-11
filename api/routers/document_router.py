@@ -38,7 +38,7 @@ async def generate_regex(
     document_id = request.documentId 
     
     pattern_data = request.selections[0]
-    is_section = request.is_section
+    is_section = request.isSection
 
     new_pattern = await document_service.handle_generate_regex(
         db=db, 
