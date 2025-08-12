@@ -7,6 +7,7 @@ class PatternSchema(BaseModel):
     user_id: int
     document_id: int 
     name: str
+    is_section: bool
     pattern: str
     created_at: datetime
     

@@ -3,4 +3,6 @@ from typing import List, Dict, Any
 
 class RegexGenerationRequest(BaseModel):
     documentId: int
-    selections: List[Dict[str, Any]]
+    key: str
+    selections: List[Dict[str, str]]
+    isSection: bool = False

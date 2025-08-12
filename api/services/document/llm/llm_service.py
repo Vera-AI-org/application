@@ -23,30 +23,29 @@ class LLMService:
     def _generate_prompt(self, text: str, selected_texts: list) -> str:
         return self.prompt_template.render(text=text, selected_texts=selected_texts)
 
-    def generate_regex(self, pattern: dict, model: str = "gemini-1.5-flash-latest") -> str:
-        name = pattern.get("key")
-        text = pattern.get("values")
-        selected_texts = pattern.get("context")
+    def generate_regex(self, pattern_data: list, model: str = "gemini-1.5-flash-latest") -> str:
+        selected_texts = ""
+        text = ""
+        for pattern in pattern_data:
+            selected_texts += pattern.get("values")
+            text += pattern.get("context")
+
         prompt = self._generate_prompt(text, selected_texts)
         
         try:
-            # Instancia o modelo generativo
             llm = genai.GenerativeModel(model)
             
-            # Configura os parâmetros de geração, como a temperatura
             generation_config = genai.types.GenerationConfig(
                 temperature=0.9
             )
             
-            # Chama a API do Gemini
             response = llm.generate_content(
                 prompt,
                 generation_config=generation_config
             )
             
-            # Extrai o texto da resposta
             regex = response.text.strip()
-            return name, regex
+            return regex
         except Exception as e:
             print(f"Erro ao chamar a API do Gemini: {e}")
-            return name, "Ocorreu um erro ao tentar gerar a análise."
+            return "Ocorreu um erro ao tentar gerar a análise."
