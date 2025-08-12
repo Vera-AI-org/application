@@ -29,8 +29,8 @@ async def upload_pdfs(
 
     return new_document
 
-@router.post("/generate-regex", response_model=PatternSchema)
-async def generate_regex(
+@router.post("/generate-pattern", response_model=PatternSchema)
+async def generate_pattern(
     request: RegexGenerationRequest,
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
@@ -65,3 +65,22 @@ async def apply_regex(
     )
     return extracted_data
 
+
+@router.delete(
+    "/delete-pattern/{pattern_id}", 
+    response_model=DeleteSuccessResponse,
+    status_code=status.HTTP_200_OK,
+    responses={404: {"description": "Pattern not found or permission denied"}}
+)
+async def delete_pattern(
+    pattern_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    result_message = await document_service.handle_delete_regex(
+        db=db, 
+        user_id=current_user.id, 
+        pattern_id=pattern_id
+    )
+
+    return result_message

@@ -55,9 +55,31 @@ class DocumentService:
         self.db.add(new_pattern)
         self.db.commit()
         self.db.refresh(new_pattern)
-        return new_pattern
+        return 
+    
+    async def _delete_pattern_by_id(self, pattern_id: int):
+        pattern_to_delete = self._get_pattern_by_id(pattern_id)
+        
+        self.db.delete(pattern_to_delete)
+        self.db.commit()
 
-    async def _generate_regex_from_selected_text(self, pattern_data: list) -> str:
+        return {"message": f"Pattern with ID {pattern_id} successfully deleted."}
+
+    async def _get_pattern_by_id(self, pattern_id: int):
+        pattern = self.db.query(Pattern).filter(
+            Pattern.id == pattern_id,
+            Pattern.user_id == self.user_id 
+        ).first()
+
+        if not pattern:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Pattern not found or permission denied"
+            )
+        
+        return pattern
+
+    async def _generate_regex_from_selected_text(self, pattern: dict) -> str:
         llm_service = LLMService()
 
         regex = llm_service.generate_regex(pattern_data)
@@ -126,3 +148,7 @@ async def handle_generate_regex(db: Session, user_id: int, pattern_data: list, d
 async def handle_apply_regex(db: Session, user_id: int, document_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
     return await service.apply_regex_to_pdf(document_id, file)
+
+async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
+    service = DocumentService(db=db, user_id=user_id)
+    return await service.delete_regex_by_id(pattern_id)
