@@ -23,7 +23,7 @@ class LLMService:
     def _generate_prompt(self, text: str, selected_texts: list) -> str:
         return self.prompt_template.render(text=text, selected_texts=selected_texts)
 
-    def generate_regex(self, pattern_data: list, model: str = "gemini-1.5-flash-latest") -> str:
+    def generate_regex(self, pattern_data: list, model: str = "gemini-2.5-pro") -> str:
         selected_texts = ""
         text = ""
         for pattern in pattern_data:
@@ -38,13 +38,14 @@ class LLMService:
             generation_config = genai.types.GenerationConfig(
                 temperature=0.9
             )
-            
+            print(prompt)
             response = llm.generate_content(
                 prompt,
                 generation_config=generation_config
             )
-            
+            print("response", response)
             regex = response.text.strip()
+            print("regex",regex)
             return regex
         except Exception as e:
             print(f"Erro ao chamar a API do Gemini: {e}")
