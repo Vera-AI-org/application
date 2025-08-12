@@ -19,3 +19,4 @@ jinja2
 pydantic-settings
 tabulate
 pymupdf4llm
+google-generativeai

@@ -6,6 +6,8 @@ from core.firebase_auth import get_current_user
 from api.schemas.user_schema import UserResponse
 from api.schemas.document_schema import DocumentSchema
 from api.schemas.pattern_schema import PatternSchema
+from api.DTO.regex_generation_request import RegexGenerationRequest
+
 
 router = APIRouter(
     prefix="/document",
@@ -29,17 +31,21 @@ async def upload_pdfs(
 
 @router.post("/generate-regex", response_model=PatternSchema)
 async def generate_regex(
+    request: RegexGenerationRequest,
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
-    pattern: dict = {},
-    document_id: int = -1
 ):
+    document_id = request.documentId 
+    
+    pattern_data = request.selections
+    is_section = request.isSection
 
     new_pattern = await document_service.handle_generate_regex(
         db=db, 
         user_id=current_user.id, 
-        pattern=pattern,
-        document_id= document_id
+        pattern_data=pattern_data,
+        document_id= document_id,
+        is_section=is_section
     )
 
     return new_pattern

@@ -43,25 +43,26 @@ class DocumentService:
         return md_text
     
 
-    async def generate_regex(self, pattern: dict, document_id: int):
-        name, regex = await self._generate_regex_from_selected_text(pattern)
+    async def generate_regex(self, pattern_data: list, document_id: int, is_section: bool):
+        regex = await self._generate_regex_from_selected_text(pattern_data)
         new_pattern = Pattern(
-                user_id=self.user_id,
+                user_id= self.user_id,
                 document_id= document_id,
-                name=name,
-                regex=regex,
+                name="name",
+                pattern=regex,
+                is_section=is_section
             )
         
         self.db.add(new_pattern)
         self.db.commit()
         self.db.refresh(new_pattern)
-
         return new_pattern
-    
-    async def _generate_regex_from_selected_text(self, pattern: dict) -> str:
+
+    async def _generate_regex_from_selected_text(self, pattern_data: list) -> str:
         llm_service = LLMService()
-        name, regex = await llm_service.generate_regex(pattern)
-        return name, regex
+
+        regex = llm_service.generate_regex(pattern_data)
+        return regex
         
     
     
@@ -69,6 +70,6 @@ async def handle_file_upload(db: Session, user_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
     return await service.upload_file(file) 
 
-async def handle_generate_regex(db: Session, user_id: int, pattern: dict, document_id: int):
+async def handle_generate_regex(db: Session, user_id: int, pattern_data: list, document_id: int, is_section: bool):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.generate_regex(pattern, document_id) 
+    return await service.generate_regex(pattern_data, document_id, is_section)
