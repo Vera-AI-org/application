@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, status
 from sqlalchemy.orm import Session
 from api.services.document import document_service  
 from core.database import get_db
@@ -49,6 +49,22 @@ async def generate_pattern(
     )
 
     return new_pattern
+
+@router.post("/apply-regex/{document_id}", status_code=status.HTTP_200_OK)
+async def apply_regex(
+    document_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user),
+):
+    extracted_data = await document_service.handle_apply_regex(
+        db=db,
+        user_id=current_user.id,
+        document_id=document_id,
+        file=file,
+    )
+    return extracted_data
+
 
 @router.delete(
     "/delete-pattern/{pattern_id}", 
