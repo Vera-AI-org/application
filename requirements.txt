@@ -20,3 +20,4 @@ pydantic-settings
 tabulate
 pymupdf4llm
 google-generativeai
+docling

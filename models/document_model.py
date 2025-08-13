@@ -14,3 +14,4 @@ class Document(Base):
     updated_at = Column(DateTime, onupdate=func.now())
 
     user = relationship("User", back_populates="documents")
+    templates = relationship("Template", back_populates="document")

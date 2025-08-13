@@ -5,8 +5,10 @@ from core.database import get_db
 from core.firebase_auth import get_current_user
 from api.schemas.user_schema import UserResponse
 from api.schemas.document_schema import DocumentSchema
-from api.schemas.pattern_schema import PatternSchema
+from api.schemas.pattern_schema import PatternSchema, PatternDeleteResponse
 from api.DTO.regex_generation_request import RegexGenerationRequest
+from typing import List
+from api.schemas.extraction_schema import ExtractionResponse
 
 
 router = APIRouter(
@@ -18,7 +20,7 @@ router = APIRouter(
 async def upload_pdfs(
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
-    file: UploadFile = File(...),
+    file: UploadFile = File(...)
 ):
     
     new_document = await document_service.handle_file_upload(
@@ -50,9 +52,9 @@ async def generate_pattern(
 
     return new_pattern
 
-@router.post("/apply-regex/{document_id}", status_code=status.HTTP_200_OK)
+@router.post("/apply-regex/{template_id}", response_model=ExtractionResponse, status_code=status.HTTP_200_OK)
 async def apply_regex(
-    document_id: int,
+    template_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
@@ -60,7 +62,7 @@ async def apply_regex(
     extracted_data = await document_service.handle_apply_regex(
         db=db,
         user_id=current_user.id,
-        document_id=document_id,
+        template_id=template_id,
         file=file,
     )
     return extracted_data
@@ -68,7 +70,7 @@ async def apply_regex(
 
 @router.delete(
     "/delete-pattern/{pattern_id}", 
-    response_model=DeleteSuccessResponse,
+    response_model=PatternDeleteResponse,
     status_code=status.HTTP_200_OK,
     responses={404: {"description": "Pattern not found or permission denied"}}
 )
