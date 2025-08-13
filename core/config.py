@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     DB_HOST: Optional[str] = None
     API_PORT: int
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: Path
-    OPENAI_API_KEY: str
+    GOOGLE_API_KEY: str    
 
     LOG_LEVEL: str = "INFO"
 

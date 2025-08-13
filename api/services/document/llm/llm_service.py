@@ -5,7 +5,6 @@ from jinja2 import Template
 
 class LLMService:
     def __init__(self):
-        # Verifica e configura a chave da API do Google
         if not os.getenv("GOOGLE_API_KEY"):
             raise ValueError("A variável de ambiente GOOGLE_API_KEY não foi definida.")
         genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))

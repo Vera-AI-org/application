@@ -7,6 +7,7 @@ from models.pattern_model import Pattern
 from .llm.llm_service import LLMService
 from core.logging import get_logger
 from models.document_model import Document
+from models.template_model import Template
 import tempfile
 
 logger = get_logger(__name__)
@@ -36,7 +37,7 @@ class DocumentService:
             content = await file.read()
             temp_file.write(content)
             temp_file.seek(0)
-            
+
             md_text = pymupdf4llm.to_markdown(temp_file.name)
 
         return md_text
@@ -55,9 +56,9 @@ class DocumentService:
         self.db.add(new_pattern)
         self.db.commit()
         self.db.refresh(new_pattern)
-        return 
+        return new_pattern
     
-    async def _delete_pattern_by_id(self, pattern_id: int):
+    async def delete_pattern_by_id(self, pattern_id: int):
         pattern_to_delete = self._get_pattern_by_id(pattern_id)
         
         self.db.delete(pattern_to_delete)
@@ -65,7 +66,7 @@ class DocumentService:
 
         return {"message": f"Pattern with ID {pattern_id} successfully deleted."}
 
-    async def _get_pattern_by_id(self, pattern_id: int):
+    async def get_pattern_by_id(self, pattern_id: int):
         pattern = self.db.query(Pattern).filter(
             Pattern.id == pattern_id,
             Pattern.user_id == self.user_id 
@@ -79,7 +80,7 @@ class DocumentService:
         
         return pattern
 
-    async def _generate_regex_from_selected_text(self, pattern: dict) -> str:
+    async def _generate_regex_from_selected_text(self, pattern_data: dict) -> str:
         llm_service = LLMService()
 
         regex = llm_service.generate_regex(pattern_data)
@@ -106,37 +107,72 @@ class DocumentService:
                 detail="Não foi possível processar o arquivo PDF."
             )
         
-    async def apply_regex_to_pdf(self, document_id: int, file: UploadFile) -> dict:
-        logger.info(f"Iniciando extração para o document_id: {document_id}")
+    async def apply_regex_to_pdf(self, template_id: int, file: UploadFile) -> dict:
+        logger.info(f"Iniciando extração para o document_id: {template_id}")
 
-        patterns = self.db.query(Pattern).filter(
-            Pattern.document_id == document_id,
-            Pattern.user_id == self.user_id
-        ).all()
+        template = self.db.query(Template).filter(
+            Template.id == template_id,
+            Template.user_id == self.user_id
+        ).first()
 
-        if not patterns:
+        if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Nenhum padrão de regex encontrado para o documento com ID {document_id}."
+                detail=f"Template com ID {template_id} não encontrado ou você não tem permissão."
             )
+        
+        section_pattern = None
+        value_patterns = []
+        for p in template.patterns:
+            if p.is_section:
+                section_pattern = p
+            else:
+                value_patterns.append(p)
+
+        if not section_pattern:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"O template com ID {template_id} não possui um padrão de seção (is_section=True)."
+            )
+        if not value_patterns:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"O template com ID {template_id} não possui padrões de extração (is_section=False)."
+            )
+
 
         pdf_text = await self._extract_text_from_pdf(file)
 
-        extracted_data = {}
-        for pattern in patterns:
-            try:
-                matches = re.findall(pattern.pattern, pdf_text, re.DOTALL | re.MULTILINE)
-                extracted_data[pattern.name] = matches if matches else ["Nenhum resultado encontrado"]
-            except re.error as e:
-                logger.warning(f"Regex inválido para o padrão '{pattern.name}' (ID: {pattern.id}): {e}")
-                extracted_data[pattern.name] = ["Erro: Regex inválido"]
-        
-        logger.info(f"Extração para o document_id: {document_id} concluída.")
-        return {"filename": file.filename, "extracted_data": extracted_data}
+        try:
+            text_blocks = re.split(f'({section_pattern.pattern})', pdf_text, flags=re.DOTALL | re.MULTILINE)[1:]
+            blocks = [text_blocks[i] + text_blocks[i+1] for i in range(0, len(text_blocks), 2)]
 
+        except re.error as e:
+            logger.error(f"Regex de seção inválido para o padrão '{section_pattern.name}' (ID: {section_pattern.id}): {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro no regex do padrão de seção."
+            )
+
+        final_results = []
+        for block_text in blocks:
+            if not block_text.strip():
+                continue
+
+            extracted_item = {}
+            for vp in value_patterns:
+                try:
+                    match = re.search(vp.pattern, block_text, flags=re.DOTALL | re.MULTILINE)
+                    extracted_item[vp.name] = match.group(1).strip() if match and match.groups() else match.group(0).strip() if match else None
+                except re.error:
+                    logger.warning(f"Regex de valor inválido para o padrão '{vp.name}' (ID: {vp.id}). Pulando.")
+                    extracted_item[vp.name] = "Erro de extração"
+            
+            final_results.append(extracted_item)
         
-    
-    
+        logger.info(f"Extração para o template_id: {template_id} concluída. {len(final_results)} itens encontrados.")
+        return final_results
+
+
 async def handle_file_upload(db: Session, user_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
     return await service.upload_file(file) 
@@ -145,9 +181,9 @@ async def handle_generate_regex(db: Session, user_id: int, pattern_data: list, d
     service = DocumentService(db=db, user_id=user_id)
     return await service.generate_regex(pattern_data, document_id, is_section) 
 
-async def handle_apply_regex(db: Session, user_id: int, document_id: int, file: UploadFile):
+async def handle_apply_regex(db: Session, user_id: int, template_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.apply_regex_to_pdf(document_id, file)
+    return await service.apply_regex_to_pdf(template_id, file)
 
 async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
     service = DocumentService(db=db, user_id=user_id)
