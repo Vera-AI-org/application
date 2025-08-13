@@ -1,10 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
-from api.services.document import document_service  
+from api.services.template import template_service  
 from core.database import get_db
 from core.firebase_auth import get_current_user
 from api.schemas.user_schema import UserResponse
-from api.schemas.document_schema import DocumentSchema
+from api.schemas.template_schema import TemplateCreateResponse, TemplateDto
+from api.DTO.create_template_request import CreateTemplateRequest
+from typing import List
 
 
 router = APIRouter(
@@ -12,17 +14,29 @@ router = APIRouter(
     tags=["Template"]
 )
 
-@router.post("/upload", response_model=TemplateSchema)
-async def upload_pdfs(
+@router.post("", response_model=TemplateCreateResponse)
+async def create_template(
+    request: CreateTemplateRequest,
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user),
-    file: UploadFile = File(...),
+    current_user: UserResponse = Depends(get_current_user)
 ):
     
-    new_document = await document_service.handle_file_upload(
+    new_template = await template_service.handle_create(
         db=db, 
         user_id=current_user.id, 
-        file=file
+        template_data=request
     )
 
-    return new_document
+    return new_template
+
+
+@router.get("", response_model=List[TemplateDto])
+async def list_by_authenticated_user(
+    db: Session = Depends(get_db),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    templates = await template_service.handle_get_all(
+        db=db,
+        user_id=current_user.id
+    )
+    return templates
