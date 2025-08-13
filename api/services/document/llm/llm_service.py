@@ -22,7 +22,7 @@ class LLMService:
     def _generate_prompt(self, text: str, selected_texts: list) -> str:
         return self.prompt_template.render(text=text, selected_texts=selected_texts)
 
-    def generate_regex(self, pattern_data: list, model: str = "gemini-1.5-flash-latest") -> str:
+    def generate_regex(self, pattern_data: list, model: str = "gemini-2.5-pro") -> str:
         selected_texts = ""
         text = ""
         for pattern in pattern_data:
