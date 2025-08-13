@@ -35,7 +35,7 @@ class LLMService:
             llm = genai.GenerativeModel(model)
             
             generation_config = genai.types.GenerationConfig(
-                temperature=0.9
+                temperature=0.0
             )
             
             response = llm.generate_content(
