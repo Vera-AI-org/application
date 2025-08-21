@@ -19,3 +19,6 @@ pydantic-settings
 tabulate
 pymupdf4llm
 google-generativeai
+regex
+fuzzysearch
+markdown2

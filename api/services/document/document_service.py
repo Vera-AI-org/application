@@ -9,6 +9,10 @@ from core.logging import get_logger
 from models.document_model import Document
 from models.template_model import Template
 import tempfile
+import regex as re
+import unicodedata
+from fuzzysearch import find_near_matches
+import markdown2
 
 logger = get_logger(__name__)
 
@@ -36,15 +40,20 @@ class DocumentService:
         with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
             content = await file.read()
             temp_file.write(content)
-            temp_file.seek(0)
+            temp_file.flush()
 
             md_text = pymupdf4llm.to_markdown(temp_file.name)
+            html = markdown2.markdown(md_text)
 
-        return md_text
+        return html
     
 
-    async def generate_regex(self, pattern_data: list, document_id: int, is_section: bool):
-        regex = await self._generate_regex_from_selected_text(pattern_data)
+    async def generate_regex(self, selected_datas: list, document_id: int, is_section: bool):
+        document = self.db.query(Document).filter(Document.id == document_id).first()
+        case = await self._format_case_section(document.document_md, selected_datas)
+
+        regex = await self._generate_regex_from_selected_text(case)
+        
         new_pattern = Pattern(
                 user_id= self.user_id,
                 document_id= document_id,
@@ -80,10 +89,57 @@ class DocumentService:
         
         return pattern
 
-    async def _generate_regex_from_selected_text(self, pattern_data: dict) -> str:
+    async def _format_case_pattern(self, document, selected_datas):
+        case = ''
+        section_regex = self.db.query(Pattern).filter(Pattern.document_id == document.id and Pattern.is_section == True).first().pattern
+
+        sections = re.split(section_regex, document.document_md, flags=re.DOTALL | re.MULTILINE)[1:]
+
+        for selected_data in selected_datas:
+            for section in sections:
+                if selected_data in section:
+                    case += f"Texto: {section}\n Resultados esperados: {selected_data}\n"
+                    sections.remove(section)
+        return case
+            
+    def fuzzy_find(self, text, pattern, max_l_dist=2):
+        matches = find_near_matches(pattern, text, max_l_dist=max_l_dist)
+        return matches[0].start if matches else -1
+
+    async def _format_case_section(self, document_md, selected_datas):
+        case = ""
+        for selected_data in selected_datas:
+            start = self.fuzzy_find(document_md, selected_data)
+            print(start)
+            if start != -1:
+                end = start + len(selected_data)
+
+                left_start = max(0, start - 20)
+                right_end = min(len(document_md), end + 20)
+
+                left_context = document_md[left_start:start]
+                right_context = document_md[end:right_end]
+
+                overlap = False
+                for other in selected_datas:
+                    if other == selected_data:
+                        continue
+                    if other in left_context or other in right_context:
+                        overlap = True
+                        break
+                    print('other', other)
+                if overlap:
+                    case +=f"Texto: {selected_data}\n Resultados esperados: {selected_data}\n"
+                else:
+                    context = left_context + selected_data + right_context
+                    case += f"Texto: {context}\n Resultados esperados: {selected_data}\n"
+            print('case', case)
+        return case
+
+    async def _generate_regex_from_selected_text(self, case: str) -> str:
         llm_service = LLMService()
 
-        regex = llm_service.generate_regex(pattern_data)
+        regex = llm_service.generate_regex(case)
         return regex
     
     async def _extract_text_from_pdf(self, file: UploadFile) -> str:

@@ -19,31 +19,27 @@ class LLMService:
         except FileNotFoundError:
             raise FileNotFoundError(f"Arquivo de template não encontrado em: {template_path}")
 
-    def _generate_prompt(self, text: str, selected_texts: list) -> str:
-        return self.prompt_template.render(text=text, selected_texts=selected_texts)
+    def _generate_prompt(self, case_text: str) -> str:
+        return self.prompt_template.render(caso=case_text)
 
-    def generate_regex(self, pattern_data: list, model: str = "gemini-2.5-pro") -> str:
-        selected_texts = ""
-        text = ""
-        for pattern in pattern_data:
-            selected_texts += pattern.get("values")
-            text += pattern.get("context")
-
-        prompt = self._generate_prompt(text, selected_texts)
+    def generate_regex(self, case: str, model: str = "gemini-2.5-pro") -> str:
+        print(case)
+        prompt = self._generate_prompt(case)
         
         try:
             llm = genai.GenerativeModel(model)
             
             generation_config = genai.types.GenerationConfig(
-                temperature=0.0
+                temperature=0
             )
-            
+            print(prompt)
             response = llm.generate_content(
                 prompt,
                 generation_config=generation_config
             )
-            
+            print("response", response)
             regex = response.text.strip()
+            print("regex",regex)
             return regex
         except Exception as e:
             print(f"Erro ao chamar a API do Gemini: {e}")
