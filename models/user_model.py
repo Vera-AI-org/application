@@ -9,6 +9,6 @@ class User(Base):
     uid = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
 
-    reports = relationship("Report", back_populates="user")
     documents = relationship("Document", back_populates="user")
     patterns = relationship("Pattern", back_populates="user")
+    templates = relationship("Template", back_populates="user")

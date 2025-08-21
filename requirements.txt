@@ -12,7 +12,6 @@ httpx
 pandas
 pymupdf
 pdfplumber
-openai
 anthropic
 aisuite
 jinja2
@@ -20,3 +19,6 @@ pydantic-settings
 tabulate
 pymupdf4llm
 google-generativeai
+regex
+fuzzysearch
+markdown2

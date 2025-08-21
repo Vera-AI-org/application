@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, func, BOOLEAN
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.template_model import template_pattern_association
+
 
 class Pattern(Base):
     __tablename__ = "pattern"
@@ -18,3 +20,9 @@ class Pattern(Base):
     is_section = Column(BOOLEAN, nullable=False, default=False)
 
     user = relationship("User", back_populates="patterns")
+
+    templates = relationship(
+        "Template",
+        secondary=template_pattern_association,
+        back_populates="patterns"
+    )
