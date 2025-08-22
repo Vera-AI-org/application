@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 import google.generativeai as genai
 from jinja2 import Template
+from openai import OpenAI
+
+client = OpenAI()
 
 class LLMService:
     def __init__(self):
@@ -22,25 +25,21 @@ class LLMService:
     def _generate_prompt(self, case_text: str) -> str:
         return self.prompt_template.render(caso=case_text)
 
-    def generate_regex(self, case: str, model: str = "gemini-2.5-pro") -> str:
-        print(case)
-        prompt = self._generate_prompt(case)
+    def generate_regex(self, case: str, model: str = "gpt-5") -> str:
         
+        prompt = self._generate_prompt(case)
+        print(prompt)
         try:
-            llm = genai.GenerativeModel(model)
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+            )
             
-            generation_config = genai.types.GenerationConfig(
-                temperature=0
-            )
-            print(prompt)
-            response = llm.generate_content(
-                prompt,
-                generation_config=generation_config
-            )
-            print("response", response)
-            regex = response.text.strip()
-            print("regex",regex)
+            regex = response.choices[0].message.content.strip()
+            print("regex", regex)
             return regex
         except Exception as e:
-            print(f"Erro ao chamar a API do Gemini: {e}")
+            print(f"Erro ao chamar a API da OpenAI: {e}")
             return "Ocorreu um erro ao tentar gerar a análise."
