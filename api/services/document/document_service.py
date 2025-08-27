@@ -103,7 +103,7 @@ class DocumentService:
                     sections.remove(section)
         return case
             
-    def fuzzy_find(self, text, pattern, max_l_dist=2):
+    def fuzzy_find(self, text, pattern, max_l_dist=50):
         matches = find_near_matches(pattern, text, max_l_dist=max_l_dist)
         return matches[0].start if matches else -1
 
@@ -117,7 +117,7 @@ class DocumentService:
 
     async def _format_case_section(self, document_md, selected_datas):
         document_text = self._extract_text_from_html(document_md)
-
+        print(document_text[0:500])
         extracted_data = [str(data) for data in selected_datas]
 
         case = ""
@@ -137,7 +137,7 @@ class DocumentService:
                 right_context = document_text[end:right_end]
 
                 context = left_context + selected_data + right_context
-                case += f"Texto {i}: {context}\nResultados esperados {i}: {selected_data}\n"
+                case += f"Texto {i}:\n {context}\nResultados esperados {i}: \n{selected_data}\n"
 
         return case
 

@@ -25,7 +25,7 @@ class LLMService:
     def _generate_prompt(self, case_text: str) -> str:
         return self.prompt_template.render(caso=case_text)
 
-    def generate_regex(self, case: str, model: str = "gpt-5") -> str:
+    def generate_regex(self, case: str, model: str = "gpt-4.1") -> str:
         
         prompt = self._generate_prompt(case)
         print(prompt)
@@ -35,6 +35,7 @@ class LLMService:
                 messages=[
                     {"role": "user", "content": prompt}
                 ],
+                temperature=0,
             )
             
             regex = response.choices[0].message.content.strip()
