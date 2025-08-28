@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 class PatternSchema(BaseModel):
     id: int
     user_id: int
-    document_id: int 
+    template_id: int 
     name: str
     is_section: bool
     pattern: str

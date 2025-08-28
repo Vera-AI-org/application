@@ -1,5 +1,5 @@
-from pydantic import RootModel
+from pydantic import BaseModel
 from typing import List, Dict, Any
 
-class ExtractionResponse(RootModel[List[Dict[str, Any]]]):
-    pass
+class ExtractionResponse(BaseModel):
+    extractions: List[Dict[str, str]]

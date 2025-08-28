@@ -9,7 +9,7 @@ class Pattern(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    document_id = Column(Integer, ForeignKey("document.id"), nullable=False)
+    template_id = Column(Integer, ForeignKey("template.id"), nullable=False)
     
     name = Column(String, nullable=True)
     pattern = Column(String, nullable=True)
@@ -21,8 +21,4 @@ class Pattern(Base):
 
     user = relationship("User", back_populates="patterns")
 
-    templates = relationship(
-        "Template",
-        secondary=template_pattern_association,
-        back_populates="patterns"
-    )
+    template = relationship("Template", back_populates="patterns")

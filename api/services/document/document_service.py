@@ -11,6 +11,7 @@ from models.template_model import Template
 import tempfile
 import regex as re
 import unicodedata
+import fitz
 from fuzzysearch import find_near_matches
 import markdown2
 from bs4 import BeautifulSoup
@@ -48,6 +49,60 @@ class DocumentService:
 
         return html
     
+    async def _extractor_text_from_pdf_to_markdown_pairs(self, file: UploadFile) -> list[str]:
+        html_list = []
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file.flush()
+
+            doc = fitz.open(temp_file.name)
+            num_pages = doc.page_count
+
+            for i in range(0, num_pages, 2):
+                start = i
+                end = min(i + 2, num_pages)
+
+                md_text = pymupdf4llm.to_markdown(temp_file.name, pages=range(start, end))
+                html = markdown2.markdown(md_text)
+                html_list.append(html)
+
+        return html_list
+
+    async def save_pattern(self, template_id: int, name: str, description: str, is_section: bool):       
+        new_pattern = Pattern(
+                user_id= self.user_id,
+                template_id=template_id,
+                name=name,
+                pattern=description,
+                is_section=is_section
+            )
+        
+        self.db.add(new_pattern)
+        self.db.commit()
+        self.db.refresh(new_pattern)
+        return new_pattern
+
+    async def process_document(self, template_id: int, file: UploadFile):
+        file_html_list = await self._extractor_text_from_pdf_to_markdown_pairs(file)
+        section = self.db.query(Pattern).filter(Pattern.template_id == template_id).first()
+        
+        patterns_text = [{section.name : section.pattern}] 
+        patterns_all = self.db.query(Pattern).all()
+        for p in patterns_all:
+            print(p.id, p.template_id, p.name, p.pattern, p.is_section)
+
+        patterns = self.db.query(Pattern).filter(
+            Pattern.template_id == template_id,
+            Pattern.is_section == False
+        ).all()
+        print(patterns)
+        for pattern in patterns:
+            patterns_text.append({pattern.name: pattern.pattern})
+
+        file_result = LLMService().process_document(file_html_list, patterns_text)
+        return file_result
 
     async def generate_regex(self, selected_datas: list, document_id: int, is_section: bool):
         document = self.db.query(Document).filter(Document.id == document_id).first()
@@ -250,3 +305,11 @@ async def handle_apply_regex(db: Session, user_id: int, template_id: int, file: 
 async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
     service = DocumentService(db=db, user_id=user_id)
     return await service.delete_regex_by_id(pattern_id)
+
+async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: str, description: str, is_section: bool):
+    service = DocumentService(db=db, user_id=user_id)
+    return await service.save_pattern(template_id, name, description, is_section)
+
+async def handle_process_document(db: Session, user_id: int, template_id: int, file: UploadFile):
+    service = DocumentService(db=db, user_id=user_id)
+    return await service.process_document(template_id, file)

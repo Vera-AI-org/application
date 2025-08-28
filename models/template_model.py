@@ -12,7 +12,6 @@ class Template(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    document_id = Column(Integer, ForeignKey("document.id"), nullable=False)
 
     name = Column(String, nullable=True)
     
@@ -26,5 +25,4 @@ class Template(Base):
     )
     
     user = relationship("User", back_populates="templates")
-    document = relationship("Document", back_populates="templates")
-
+    patterns = relationship("Pattern", back_populates="template", cascade="all, delete-orphan")

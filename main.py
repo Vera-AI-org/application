@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routers import auth_router, document_router
+from api.routers import auth_router, document_router, template_router
 from core.database import engine
 import models.user_model as user_model
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +27,7 @@ app.add_middleware(
 
 app.include_router(auth_router.router)
 app.include_router(document_router.router)
+app.include_router(template_router.router)
 
 @app.get("/", tags=["Default"])
 def root():
