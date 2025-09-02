@@ -22,3 +22,4 @@ google-generativeai
 regex
 fuzzysearch
 markdown2
+fastapi-mail

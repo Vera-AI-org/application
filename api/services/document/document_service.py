@@ -13,6 +13,8 @@ import regex as re
 import unicodedata
 from fuzzysearch import find_near_matches
 import markdown2
+from core.email.email_service import send_extraction_email
+from pydantic import EmailStr
 
 logger = get_logger(__name__)
 
@@ -237,9 +239,10 @@ async def handle_generate_regex(db: Session, user_id: int, pattern_data: list, d
     service = DocumentService(db=db, user_id=user_id)
     return await service.generate_regex(pattern_data, document_id, is_section) 
 
-async def handle_apply_regex(db: Session, user_id: int, template_id: int, file: UploadFile):
+async def handle_apply_regex_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.apply_regex_to_pdf(template_id, file)
+    extracted_data = await service.apply_regex_to_pdf(template_id, file)
+    await send_extraction_email(email_to=user_email, results=extracted_data)
 
 async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
     service = DocumentService(db=db, user_id=user_id)
