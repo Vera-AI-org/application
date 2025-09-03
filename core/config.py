@@ -17,7 +17,15 @@ class Settings(BaseSettings):
     DB_HOST: Optional[str] = None
     API_PORT: int
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: Path
-    GOOGLE_API_KEY: str    
+    GOOGLE_API_KEY: str
+
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int
+    MAIL_SERVER: str
+    MAIL_STARTTLS: bool
+    MAIL_SSL_TLS: bool
 
     LOG_LEVEL: str = "INFO"
 

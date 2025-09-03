@@ -15,6 +15,8 @@ import fitz
 from fuzzysearch import find_near_matches
 import markdown2
 from bs4 import BeautifulSoup
+from core.email.email_service import send_extraction_email
+from pydantic import EmailStr
 
 logger = get_logger(__name__)
 
@@ -313,3 +315,8 @@ async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: 
 async def handle_process_document(db: Session, user_id: int, template_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
     return await service.process_document(template_id, file)
+
+async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file: UploadFile):
+    service = DocumentService(db=db, user_id=user_id)
+    extracted_data = await service.process_document(template_id, file)
+    await send_extraction_email(email_to=user_email, results=extracted_data)

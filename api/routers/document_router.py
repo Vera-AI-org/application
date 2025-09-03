@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, status, Form
+from fastapi import APIRouter, UploadFile, File, Depends, status, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from api.services.document import document_service  
 from core.database import get_db
@@ -55,22 +55,23 @@ async def create_pattern(
     return new_pattern
 
 
-@router.post("/process", response_model=ExtractionResponse, status_code=status.HTTP_200_OK)
+@router.post("/process", status_code=status.HTTP_202_ACCEPTED)
 async def process_document(
+    background_tasks: BackgroundTasks,
     template_id: int = Form(...),  
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
 ):
-    extracted_data = await document_service.handle_process_document(
+    background_tasks.add_task(
+        document_service.handle_process_document_background,
         db=db,
         user_id=current_user.id,
+        user_email=current_user.email,
         template_id=template_id,
         file=file,
     )
-    print(extracted_data)
-    return extracted_data
-
+    return {"message": "Received."}
 
 @router.delete(
     "/delete-pattern/{pattern_id}", 
