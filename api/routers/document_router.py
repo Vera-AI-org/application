@@ -63,13 +63,15 @@ async def process_document(
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
 ):
+    file_content = await file.read()
+
     background_tasks.add_task(
         document_service.handle_process_document_background,
         db=db,
         user_id=current_user.id,
         user_email=current_user.email,
         template_id=template_id,
-        file=file,
+        file_content=file_content,
     )
     return {"message": "Received."}
 

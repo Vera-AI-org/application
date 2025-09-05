@@ -51,12 +51,11 @@ class DocumentService:
 
         return html
     
-    async def _extractor_text_from_pdf_to_markdown_pairs(self, file: UploadFile) -> list[str]:
+    async def _extractor_text_from_pdf_to_markdown_pairs(self, file_content: bytes) -> list[str]:
         html_list = []
 
         with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
-            content = await file.read()
-            temp_file.write(content)
+            temp_file.write(file_content)
             temp_file.flush()
 
             doc = fitz.open(temp_file.name)
@@ -86,8 +85,8 @@ class DocumentService:
         self.db.refresh(new_pattern)
         return new_pattern
 
-    async def process_document(self, template_id: int, file: UploadFile):
-        file_html_list = await self._extractor_text_from_pdf_to_markdown_pairs(file)
+    async def process_document(self, template_id: int, file_content: bytes):
+        file_html_list = await self._extractor_text_from_pdf_to_markdown_pairs(file_content)
         section = self.db.query(Pattern).filter(Pattern.template_id == template_id).first()
         
         patterns_text = [{section.name : section.pattern}] 
@@ -312,9 +311,10 @@ async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: 
     service = DocumentService(db=db, user_id=user_id)
     return await service.save_pattern(template_id, name, description, is_section)
 
-async def handle_process_document(db: Session, user_id: int, template_id: int, file: UploadFile):
+async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file_content: bytes):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.process_document(template_id, file)
+    extracted_data = await service.process_document(template_id, file_content)
+    await send_extraction_email(email_to=user_email, results=extracted_data)
 
 async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
