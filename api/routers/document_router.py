@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, status
+from fastapi import APIRouter, UploadFile, File, Depends, status, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from api.services.document import document_service  
 from core.database import get_db
@@ -7,6 +7,7 @@ from api.schemas.user_schema import UserResponse
 from api.schemas.document_schema import DocumentSchema
 from api.schemas.pattern_schema import PatternSchema, PatternDeleteResponse
 from api.DTO.regex_generation_request import RegexGenerationRequest
+from api.DTO.create_pattern_request import CreatePatternRequest
 from typing import List
 from api.schemas.extraction_schema import ExtractionResponse
 
@@ -31,42 +32,48 @@ async def upload_pdfs(
 
     return new_document
 
-@router.post("/generate-pattern", response_model=PatternSchema)
-async def generate_pattern(
-    request: RegexGenerationRequest,
+@router.post("/create-pattern", response_model=PatternSchema)
+async def create_pattern(
+    request: CreatePatternRequest,
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
 ):
-    document_id = request.documentId 
-    
-    pattern_data = request.selections
+    template_id = request.templateId
+    name = request.name
+    description = request.description
     is_section = request.isSection
 
-    new_pattern = await document_service.handle_generate_regex(
-        db=db, 
-        user_id=current_user.id, 
-        pattern_data=pattern_data,
-        document_id= document_id,
+    new_pattern = await document_service.handle_save_pattern(
+        db=db,
+        template_id=template_id,
+        user_id=current_user.id,
+        name=name,
+        description=description,
         is_section=is_section
     )
 
     return new_pattern
 
-@router.post("/apply-regex/{template_id}", response_model=ExtractionResponse, status_code=status.HTTP_200_OK)
-async def apply_regex(
-    template_id: int,
+
+@router.post("/process", status_code=status.HTTP_202_ACCEPTED)
+async def process_document(
+    background_tasks: BackgroundTasks,
+    template_id: int = Form(...),  
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
 ):
-    extracted_data = await document_service.handle_apply_regex(
+    file_content = await file.read()
+
+    background_tasks.add_task(
+        document_service.handle_process_document_background,
         db=db,
         user_id=current_user.id,
+        user_email=current_user.email,
         template_id=template_id,
-        file=file,
+        file_content=file_content,
     )
-    return extracted_data
-
+    return {"message": "Received."}
 
 @router.delete(
     "/delete-pattern/{pattern_id}", 

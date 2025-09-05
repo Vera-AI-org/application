@@ -22,3 +22,6 @@ google-generativeai
 regex
 fuzzysearch
 markdown2
+openai
+beautifulsoup4
+fastapi-mail

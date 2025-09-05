@@ -1,23 +1,15 @@
-Analise o texto e os exemplos de resultados para criar uma expressão regular (regex) que capture APENAS os resultados.
+Você é um assistente especialista em geração de expressões regulares.
 
-Responda apenas o regex e NADA MAIS.
+Analise o texto e os exemplos de resultados para criar uma expressão regular (regex) que capture apenas os resultados. O regex não deve capturar nada além do padrão dos resultados esperados, ou seja NENHUMA caractere a direita a mais e NENHUM caractere a esquerda a mais.
 
-Por exemplo,
+O regex deve ser compatível com a classe RegExp do JavaScript (sem usar recursos não suportados).
 
-Para a entrada:
-Texto:
-'victor tem 1.93'
-'ana livia 1.74'
+A resposta deve ser somente a expressão regular, em uma linha única, sem aspas, sem explicações, sem blocos de código e sem qualquer outro texto.
 
-Resultados Esperados:
-'1.74',
-'1.93'
+dica: não use bordas, pois o texto a seguir tem quebra de linhas e se possível utilize LookArounds para identificar o começo e fim do padrão.
 
-A resposta deve ser APENAS:
-'\d\.\d{2}'
-
-Agora faça para esse caso:
+Agora faça para este caso:
 
 {{caso}}
 
-Resposta:
+Regex esperado:

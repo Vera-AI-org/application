@@ -20,7 +20,7 @@ class TemplateService:
 
         new_template = Template(
                 user_id=self.user_id,
-                document_id=template_data.document_id,
+                patterns=template_data.pattern_ids,
                 name=template_data.name
             )
         
