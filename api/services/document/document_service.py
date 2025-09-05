@@ -315,8 +315,3 @@ async def handle_process_document_background(db: Session, user_id: int, user_ema
     service = DocumentService(db=db, user_id=user_id)
     extracted_data = await service.process_document(template_id, file_content)
     await send_extraction_email(email_to=user_email, results=extracted_data)
-
-async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file: UploadFile):
-    service = DocumentService(db=db, user_id=user_id)
-    extracted_data = await service.process_document(template_id, file)
-    await send_extraction_email(email_to=user_email, results=extracted_data)
