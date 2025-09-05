@@ -15,7 +15,7 @@ conf = ConnectionConfig(
     MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
-    TEMPLATE_FOLDER=Path(__file__).parent / 'templates'
+    TEMPLATE_FOLDER=Path(__file__).parent / 'template'
 )
 
 async def send_extraction_email(email_to: EmailStr, results: Dict[str, Any]):
