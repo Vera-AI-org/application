@@ -72,6 +72,7 @@ async def process_document(
         user_email=current_user.email,
         template_id=template_id,
         file_content=file_content,
+        document_name=file.filename
     )
     return {"message": "Received."}
 

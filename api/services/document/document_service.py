@@ -15,7 +15,7 @@ import fitz
 from fuzzysearch import find_near_matches
 import markdown2
 from bs4 import BeautifulSoup
-from core.email.email_service import send_extraction_email
+from core.email.email_service import send_email_with_attachment
 from pydantic import EmailStr
 
 logger = get_logger(__name__)
@@ -311,7 +311,26 @@ async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: 
     service = DocumentService(db=db, user_id=user_id)
     return await service.save_pattern(template_id, name, description, is_section)
 
-async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file_content: bytes):
+async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file_content: bytes, document_name: str):
     service = DocumentService(db=db, user_id=user_id)
     extracted_data = await service.process_document(template_id, file_content)
-    await send_extraction_email(email_to=user_email, results=extracted_data)
+
+    doc_name_without_ext = document_name.rsplit('.', 1)[0]
+    
+    subject = f"Extração Concluída: {document_name}"
+    attachment_filename = f"extracao_{doc_name_without_ext}.csv"
+    
+    template_data = {
+        "subject": subject,
+        "title": "Extração de Documento Concluída",
+        "body_text": f"A extração do documento '{document_name}' foi concluída com sucesso."
+    }
+    
+    await send_email_with_attachment(
+        email_to=user_email,
+        subject=subject,
+        template_name="extraction_template.html",
+        template_body=template_data,
+        attachment_data=extracted_data.get('extractions', []),
+        attachment_filename=attachment_filename
+    )
