@@ -4,6 +4,8 @@ from pathlib import Path
 import google.generativeai as genai
 from jinja2 import Template
 from openai import OpenAI
+import time 
+
 
 client = OpenAI()
 
@@ -47,40 +49,57 @@ class LLMService:
             return "Ocorreu um erro ao tentar gerar a análise."
     
     def process_document(self, texts_html, patterns):
-        prompt = self._create_prompt_process_document(texts_html[0], patterns)
-        print(prompt)
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4.1",
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0,
-            )
-            
-            extraction = response.choices[0].message.content.strip()
-            extraction = response.choices[0].message.content.strip()
+        max_retries = 3
+        all_extractions = {"extractions": []}
 
-            try:
-                extraction_dict = json.loads(extraction)  
-            except json.JSONDecodeError:
-                extraction_dict = {"extractions": []}  
+        for html in texts_html:
+            retries = 0
+            success = False
+            prompt = self._create_prompt_process_document(html, patterns)
+        
+            while retries < max_retries and not success:
+                try:
+                    response = client.chat.completions.create(
+                        model="gpt-4.1",
+                        messages=[
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0,
+                    )
+                    
+                    extraction = response.choices[0].message.content.strip()
 
-            print("extraction", extraction_dict)
-            return extraction_dict
+                    try:
+                        extraction_dict = json.loads(extraction)
+                    except json.JSONDecodeError:
+                        extraction_dict = {"extractions": []}
 
-        except Exception as e:
-            print(f"Erro ao chamar a API da OpenAI: {e}")
-            return "Ocorreu um erro ao tentar processar o documento."
+                    print("extraction", extraction_dict)
+
+                    if "extractions" in extraction_dict:
+                        all_extractions["extractions"].extend(extraction_dict["extractions"])
+
+                    success = True
+
+                except Exception as e:
+                    retries += 1
+                    print(f"Erro ao chamar a API da OpenAI (tentativa {retries}): {e}")
+                    if retries < max_retries:
+                        print("Aguardando 30 segundos antes de tentar novamente...")
+                        time.sleep(30)
+                    else:
+                        print("Máximo de tentativas atingido, passando para o próximo HTML.")
+
+        return all_extractions
         
 
     def _create_prompt_process_document(self, text_html, patterns):
         section = patterns[0]
-        patterns.remove(section)
+        patterns_filtered = patterns[1:]
 
         patterns_str = "\n".join(
             f"- {key}: {value}"
-            for pattern in patterns
+            for pattern in patterns_filtered
             for key, value in pattern.items()
         )
 

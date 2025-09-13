@@ -102,15 +102,12 @@ class DocumentService:
         section = self.db.query(Pattern).filter(Pattern.template_id == template_id).first()
         
         patterns_text = [{section.name : section.pattern}] 
-        patterns_all = self.db.query(Pattern).all()
-        for p in patterns_all:
-            print(p.id, p.template_id, p.name, p.pattern, p.is_section)
 
         patterns = self.db.query(Pattern).filter(
             Pattern.template_id == template_id,
             Pattern.is_section == False
         ).all()
-        print(patterns)
+        
         for pattern in patterns:
             patterns_text.append({pattern.name: pattern.pattern})
 
