@@ -15,10 +15,23 @@ import fitz
 from fuzzysearch import find_near_matches
 import markdown2
 from bs4 import BeautifulSoup
-from core.email.email_service import send_extraction_email
+from core.email.email_service import send_email_with_attachment
 from pydantic import EmailStr
+import io
+import csv
 
 logger = get_logger(__name__)
+
+def list_to_csv_bytes(data: list[dict]) -> bytes:
+    """Converte lista de dicts em CSV em bytes."""
+    if not data:
+        return b""
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=data[0].keys())
+    writer.writeheader()
+    writer.writerows(data)
+    return output.getvalue().encode("utf-8")
+
 
 class DocumentService:
     def __init__(self, db: Session, user_id: int):
@@ -29,16 +42,15 @@ class DocumentService:
         md_text = await self._extractor_text_from_pdf_to_markdown(file)
 
         new_document = Document(
-                user_id=self.user_id,
-                document_md=md_text, 
-            )
+            user_id=self.user_id,
+            document_md=md_text, 
+        )
         
         self.db.add(new_document)
         self.db.commit()
         self.db.refresh(new_document)
 
         return new_document
-
 
     async def _extractor_text_from_pdf_to_markdown(self, file: UploadFile) -> str:
         with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
@@ -73,12 +85,12 @@ class DocumentService:
 
     async def save_pattern(self, template_id: int, name: str, description: str, is_section: bool):       
         new_pattern = Pattern(
-                user_id= self.user_id,
-                template_id=template_id,
-                name=name,
-                pattern=description,
-                is_section=is_section
-            )
+            user_id=self.user_id,
+            template_id=template_id,
+            name=name,
+            pattern=description,
+            is_section=is_section
+        )
         
         self.db.add(new_pattern)
         self.db.commit()
@@ -90,15 +102,12 @@ class DocumentService:
         section = self.db.query(Pattern).filter(Pattern.template_id == template_id).first()
         
         patterns_text = [{section.name : section.pattern}] 
-        patterns_all = self.db.query(Pattern).all()
-        for p in patterns_all:
-            print(p.id, p.template_id, p.name, p.pattern, p.is_section)
 
         patterns = self.db.query(Pattern).filter(
             Pattern.template_id == template_id,
             Pattern.is_section == False
         ).all()
-        print(patterns)
+        
         for pattern in patterns:
             patterns_text.append({pattern.name: pattern.pattern})
 
@@ -112,12 +121,12 @@ class DocumentService:
         regex = await self._generate_regex_from_selected_text(case)
         
         new_pattern = Pattern(
-                user_id= self.user_id,
-                document_id= document_id,
-                name="name",
-                pattern=regex,
-                is_section=is_section
-            )
+            user_id=self.user_id,
+            document_id=document_id,
+            name="name",
+            pattern=regex,
+            is_section=is_section
+        )
         
         self.db.add(new_pattern)
         self.db.commit()
@@ -197,10 +206,8 @@ class DocumentService:
 
         return case
 
-
     async def _generate_regex_from_selected_text(self, case: str) -> str:
         llm_service = LLMService()
-
         regex = llm_service.generate_regex(case)
         return regex
     
@@ -258,7 +265,6 @@ class DocumentService:
                 detail=f"O template com ID {template_id} não possui padrões de extração (is_section=False)."
             )
 
-
         pdf_text = await self._extract_text_from_pdf(file)
 
         try:
@@ -291,6 +297,7 @@ class DocumentService:
         return final_results
 
 
+# ====== HANDLERS ======
 async def handle_file_upload(db: Session, user_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
     return await service.upload_file(file) 
@@ -305,13 +312,35 @@ async def handle_apply_regex(db: Session, user_id: int, template_id: int, file: 
 
 async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.delete_regex_by_id(pattern_id)
+    return await service.delete_pattern_by_id(pattern_id)
 
 async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: str, description: str, is_section: bool):
     service = DocumentService(db=db, user_id=user_id)
     return await service.save_pattern(template_id, name, description, is_section)
 
-async def handle_process_document_background(db: Session, user_id: int, user_email: EmailStr, template_id: int, file_content: bytes):
+async def handle_process_document_background(
+    db: Session, user_id: int, user_email: EmailStr,
+    template_id: int, file_content: bytes, document_name: str
+):
     service = DocumentService(db=db, user_id=user_id)
     extracted_data = await service.process_document(template_id, file_content)
-    await send_extraction_email(email_to=user_email, results=extracted_data)
+
+    doc_name_without_ext = document_name.rsplit('.', 1)[0]
+    
+    subject = f"Extração Concluída: {document_name}"
+    attachment_filename = f"extracao_{doc_name_without_ext}.csv"
+    
+    template_data = {
+        "subject": subject,
+        "title": "Extração de Documento Concluída",
+        "body_text": f"A extração do documento '{document_name}' foi concluída com sucesso."
+    }
+
+    await send_email_with_attachment(
+        email_to=user_email,
+        subject=subject,
+        template_name="extraction_template.html",
+        template_body=template_data,
+        attachment_data=extracted_data.get("extractions", []),
+        attachment_filename=attachment_filename
+    )
