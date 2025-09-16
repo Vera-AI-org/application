@@ -60,7 +60,7 @@ class LLMService:
             while retries < max_retries and not success:
                 try:
                     response = client.chat.completions.create(
-                        model="gpt-4.1",
+                        model="gpt-4.1-mini",
                         messages=[
                             {"role": "user", "content": prompt}
                         ],
