@@ -46,7 +46,10 @@ async def send_email_with_attachment(
                 file=BytesIO(buffer.getvalue().encode("utf-8")),
             )
         ]
-
+    print("subject", subject)
+    print("email_to", email_to)
+    print("template_body", template_body)
+    print("attachments", attachments)
     message = MessageSchema(
         subject=subject,
         recipients=[email_to],
