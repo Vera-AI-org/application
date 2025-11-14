@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, status, Form, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Depends, status, Form, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from api.services.document import document_service  
 from core.database import get_db
@@ -10,6 +10,7 @@ from api.DTO.regex_generation_request import RegexGenerationRequest
 from api.DTO.create_pattern_request import CreatePatternRequest
 from typing import List
 from api.schemas.extraction_schema import ExtractionResponse
+
 
 
 router = APIRouter(
@@ -56,24 +57,33 @@ async def create_pattern(
 
 
 @router.post("/process", status_code=status.HTTP_202_ACCEPTED)
-async def process_document(
+async def process_documents(
     background_tasks: BackgroundTasks,
-    template_id: int = Form(...),  
-    file: UploadFile = File(...),
+    template_ids: list[int] = Form(...),
+    files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
 ):
-    file_content = await file.read()
+    if len(template_ids) != len(files):
+        raise HTTPException(status_code=400, detail="template_ids e arquivos não batem em quantidade.")
+
+    documents = []
+    for template_id, file in zip(template_ids, files):
+        content = await file.read()
+        documents.append({
+            "template_id": template_id,
+            "content": content,
+            "filename": file.filename,
+        })
 
     background_tasks.add_task(
-        document_service.handle_process_document_background,
+        document_service.handle_process_documents_background,
         db=db,
         user_id=current_user.id,
         user_email=current_user.email,
-        template_id=template_id,
-        file_content=file_content,
-        document_name=file.filename
+        documents=documents
     )
+
     return {"message": "Received."}
 
 @router.delete(

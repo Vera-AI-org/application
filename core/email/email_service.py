@@ -3,9 +3,10 @@ from pydantic import EmailStr
 from typing import List, Dict, Any
 from core.config import settings
 from pathlib import Path
-import pandas as pd
+from io import BytesIO
+import csv
 import io
-from fastapi import UploadFile
+from starlette.datastructures import UploadFile
 from io import BytesIO
 
 conf = ConnectionConfig(
@@ -32,24 +33,31 @@ async def send_email_with_attachment(
     fm = FastMail(conf)
 
     attachments = None
+
     if attachment_data:
-        # Gerar CSV em memória
-        df = pd.DataFrame(attachment_data)
+        fieldnames = set()
+        for row in attachment_data:
+            fieldnames.update(row.keys())
+        fieldnames = list(fieldnames)
+
         buffer = io.StringIO()
-        df.to_csv(buffer, index=False)
+        writer = csv.DictWriter(buffer, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(attachment_data)
         buffer.seek(0)
 
-        # Criar UploadFile em memória
         attachments = [
             UploadFile(
                 filename=attachment_filename,
                 file=BytesIO(buffer.getvalue().encode("utf-8")),
             )
         ]
+
     print("subject", subject)
     print("email_to", email_to)
     print("template_body", template_body)
     print("attachments", attachments)
+
     message = MessageSchema(
         subject=subject,
         recipients=[email_to],

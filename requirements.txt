@@ -25,3 +25,4 @@ markdown2
 openai
 beautifulsoup4
 fastapi-mail
+rapidfuzz
