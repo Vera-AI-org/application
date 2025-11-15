@@ -24,6 +24,7 @@ from rapidfuzz import fuzz
 
 logger = get_logger(__name__)
 
+
 def list_to_csv_bytes(data: list[dict]) -> bytes:
     """Converte lista de dicts em CSV em bytes."""
     if not data:
@@ -45,9 +46,9 @@ class DocumentService:
 
         new_document = Document(
             user_id=self.user_id,
-            document_md=md_text, 
+            document_md=md_text,
         )
-        
+
         self.db.add(new_document)
         self.db.commit()
         self.db.refresh(new_document)
@@ -64,8 +65,10 @@ class DocumentService:
             html = markdown2.markdown(md_text)
 
         return html
-    
-    async def _extractor_text_from_pdf_to_markdown_pairs(self, file_content: bytes) -> list[str]:
+
+    async def _extractor_text_from_pdf_to_markdown_pairs(
+        self, file_content: bytes
+    ) -> list[str]:
         html_list = []
 
         with tempfile.NamedTemporaryFile(suffix=".pdf") as temp_file:
@@ -79,97 +82,118 @@ class DocumentService:
                 start = i
                 end = min(i + 2, num_pages)
 
-                md_text = pymupdf4llm.to_markdown(temp_file.name, pages=range(start, end))
+                md_text = pymupdf4llm.to_markdown(
+                    temp_file.name, pages=range(start, end)
+                )
                 html = markdown2.markdown(md_text)
                 html_list.append(html)
 
         return html_list
 
-    async def save_pattern(self, template_id: int, name: str, description: str, is_section: bool):       
+    async def save_pattern(
+        self, template_id: int, name: str, description: str, is_section: bool
+    ):
         new_pattern = Pattern(
             user_id=self.user_id,
             template_id=template_id,
             name=name,
             pattern=description,
-            is_section=is_section
+            is_section=is_section,
         )
-        
+
         self.db.add(new_pattern)
         self.db.commit()
         self.db.refresh(new_pattern)
         return new_pattern
 
     async def process_document(self, template_id: int, file_content: bytes):
-        file_html_list = await self._extractor_text_from_pdf_to_markdown_pairs(file_content)
-        section = self.db.query(Pattern).filter(Pattern.template_id == template_id).first()
-        
-        patterns_text = [{section.name : section.pattern}] 
+        file_html_list = await self._extractor_text_from_pdf_to_markdown_pairs(
+            file_content
+        )
+        section = (
+            self.db.query(Pattern).filter(Pattern.template_id == template_id).first()
+        )
 
-        patterns = self.db.query(Pattern).filter(
-            Pattern.template_id == template_id,
-            Pattern.is_section == False
-        ).all()
-        
+        patterns_text = [{section.name: section.pattern}]
+
+        patterns = (
+            self.db.query(Pattern)
+            .filter(Pattern.template_id == template_id, Pattern.is_section == False)
+            .all()
+        )
+
         for pattern in patterns:
             patterns_text.append({pattern.name: pattern.pattern})
 
         file_result = LLMService().process_document(file_html_list, patterns_text)
         return file_result
 
-    async def generate_regex(self, selected_datas: list, document_id: int, is_section: bool):
+    async def generate_regex(
+        self, selected_datas: list, document_id: int, is_section: bool
+    ):
         document = self.db.query(Document).filter(Document.id == document_id).first()
         case = await self._format_case_section(document.document_md, selected_datas)
 
         regex = await self._generate_regex_from_selected_text(case)
-        
+
         new_pattern = Pattern(
             user_id=self.user_id,
             document_id=document_id,
             name="name",
             pattern=regex,
-            is_section=is_section
+            is_section=is_section,
         )
-        
+
         self.db.add(new_pattern)
         self.db.commit()
         self.db.refresh(new_pattern)
         return new_pattern
-    
+
     async def delete_pattern_by_id(self, pattern_id: int):
         pattern_to_delete = self._get_pattern_by_id(pattern_id)
-        
+
         self.db.delete(pattern_to_delete)
         self.db.commit()
 
         return {"message": f"Pattern with ID {pattern_id} successfully deleted."}
 
     async def get_pattern_by_id(self, pattern_id: int):
-        pattern = self.db.query(Pattern).filter(
-            Pattern.id == pattern_id,
-            Pattern.user_id == self.user_id 
-        ).first()
+        pattern = (
+            self.db.query(Pattern)
+            .filter(Pattern.id == pattern_id, Pattern.user_id == self.user_id)
+            .first()
+        )
 
         if not pattern:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, 
-                detail="Pattern not found or permission denied"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pattern not found or permission denied",
             )
-        
+
         return pattern
 
     async def _format_case_pattern(self, document, selected_datas):
-        case = ''
-        section_regex = self.db.query(Pattern).filter(Pattern.document_id == document.id and Pattern.is_section == True).first().pattern
+        case = ""
+        section_regex = (
+            self.db.query(Pattern)
+            .filter(Pattern.document_id == document.id and Pattern.is_section == True)
+            .first()
+            .pattern
+        )
 
-        sections = re.split(section_regex, document.document_md, flags=re.DOTALL | re.MULTILINE)[1:]
+        sections = re.split(
+            section_regex, document.document_md, flags=re.DOTALL | re.MULTILINE
+        )[1:]
 
         for selected_data in selected_datas:
             for section in sections:
                 if selected_data in section:
-                    case += f"Texto: {section}\n Resultados esperados: {selected_data}\n"
+                    case += (
+                        f"Texto: {section}\n Resultados esperados: {selected_data}\n"
+                    )
                     sections.remove(section)
         return case
-            
+
     def fuzzy_find(self, text, pattern, max_l_dist=50):
         matches = find_near_matches(pattern, text, max_l_dist=max_l_dist)
         return matches[0].start if matches else -1
@@ -177,10 +201,10 @@ class DocumentService:
     def _extract_text_from_html(self, html_string: str) -> str:
         if not html_string:
             return ""
-        soup = BeautifulSoup(html_string, 'html.parser')
+        soup = BeautifulSoup(html_string, "html.parser")
         text = soup.get_text()
-        
-        return re.sub(r'\s+', ' ', text).strip()
+
+        return re.sub(r"\s+", " ", text).strip()
 
     async def _format_case_section(self, document_md, selected_datas):
         document_text = self._extract_text_from_html(document_md)
@@ -212,14 +236,14 @@ class DocumentService:
         llm_service = LLMService()
         regex = llm_service.generate_regex(case)
         return regex
-    
+
     async def _extract_text_from_pdf(self, file: UploadFile) -> str:
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
                 content = await file.read()
                 temp_file.write(content)
                 temp_file.seek(0)
-                
+
                 text = ""
                 with pdfplumber.open(temp_file.name) as pdf:
                     for page in pdf.pages:
@@ -231,23 +255,24 @@ class DocumentService:
             logger.error(f"Falha ao extrair texto do PDF: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Não foi possível processar o arquivo PDF."
+                detail="Não foi possível processar o arquivo PDF.",
             )
-        
+
     async def apply_regex_to_pdf(self, template_id: int, file: UploadFile) -> dict:
         logger.info(f"Iniciando extração para o document_id: {template_id}")
 
-        template = self.db.query(Template).filter(
-            Template.id == template_id,
-            Template.user_id == self.user_id
-        ).first()
+        template = (
+            self.db.query(Template)
+            .filter(Template.id == template_id, Template.user_id == self.user_id)
+            .first()
+        )
 
         if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Template com ID {template_id} não encontrado ou você não tem permissão."
+                detail=f"Template com ID {template_id} não encontrado ou você não tem permissão.",
             )
-        
+
         section_pattern = None
         value_patterns = []
         for p in template.patterns:
@@ -259,24 +284,32 @@ class DocumentService:
         if not section_pattern:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"O template com ID {template_id} não possui um padrão de seção (is_section=True)."
+                detail=f"O template com ID {template_id} não possui um padrão de seção (is_section=True).",
             )
         if not value_patterns:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"O template com ID {template_id} não possui padrões de extração (is_section=False)."
+                detail=f"O template com ID {template_id} não possui padrões de extração (is_section=False).",
             )
 
         pdf_text = await self._extract_text_from_pdf(file)
 
         try:
-            text_blocks = re.split(f'({section_pattern.pattern})', pdf_text, flags=re.DOTALL | re.MULTILINE)[1:]
-            blocks = [text_blocks[i] + text_blocks[i+1] for i in range(0, len(text_blocks), 2)]
+            text_blocks = re.split(
+                f"({section_pattern.pattern})", pdf_text, flags=re.DOTALL | re.MULTILINE
+            )[1:]
+            blocks = [
+                text_blocks[i] + text_blocks[i + 1]
+                for i in range(0, len(text_blocks), 2)
+            ]
 
         except re.error as e:
-            logger.error(f"Regex de seção inválido para o padrão '{section_pattern.name}' (ID: {section_pattern.id}): {e}")
+            logger.error(
+                f"Regex de seção inválido para o padrão '{section_pattern.name}' (ID: {section_pattern.id}): {e}"
+            )
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro no regex do padrão de seção."
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Erro no regex do padrão de seção.",
             )
 
         final_results = []
@@ -287,36 +320,61 @@ class DocumentService:
             extracted_item = {}
             for vp in value_patterns:
                 try:
-                    match = re.search(vp.pattern, block_text, flags=re.DOTALL | re.MULTILINE)
-                    extracted_item[vp.name] = match.group(1).strip() if match and match.groups() else match.group(0).strip() if match else None
+                    match = re.search(
+                        vp.pattern, block_text, flags=re.DOTALL | re.MULTILINE
+                    )
+                    extracted_item[vp.name] = (
+                        match.group(1).strip()
+                        if match and match.groups()
+                        else match.group(0).strip() if match else None
+                    )
                 except re.error:
-                    logger.warning(f"Regex de valor inválido para o padrão '{vp.name}' (ID: {vp.id}). Pulando.")
+                    logger.warning(
+                        f"Regex de valor inválido para o padrão '{vp.name}' (ID: {vp.id}). Pulando."
+                    )
                     extracted_item[vp.name] = "Erro de extração"
-            
+
             final_results.append(extracted_item)
-        
-        logger.info(f"Extração para o template_id: {template_id} concluída. {len(final_results)} itens encontrados.")
+
+        logger.info(
+            f"Extração para o template_id: {template_id} concluída. {len(final_results)} itens encontrados."
+        )
         return final_results
 
 
 # ====== HANDLERS ======
 async def handle_file_upload(db: Session, user_id: int, file: UploadFile):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.upload_file(file) 
+    return await service.upload_file(file)
 
-async def handle_generate_regex(db: Session, user_id: int, pattern_data: list, document_id: int, is_section: bool):
+
+async def handle_generate_regex(
+    db: Session, user_id: int, pattern_data: list, document_id: int, is_section: bool
+):
     service = DocumentService(db=db, user_id=user_id)
-    return await service.generate_regex(pattern_data, document_id, is_section) 
+    return await service.generate_regex(pattern_data, document_id, is_section)
 
-async def handle_apply_regex(db: Session, user_id: int, template_id: int, file: UploadFile):
+
+async def handle_apply_regex(
+    db: Session, user_id: int, template_id: int, file: UploadFile
+):
     service = DocumentService(db=db, user_id=user_id)
     return await service.apply_regex_to_pdf(template_id, file)
+
 
 async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
     service = DocumentService(db=db, user_id=user_id)
     return await service.delete_pattern_by_id(pattern_id)
 
-async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: str, description: str, is_section: bool):
+
+async def handle_save_pattern(
+    db: Session,
+    user_id: int,
+    template_id: int,
+    name: str,
+    description: str,
+    is_section: bool,
+):
     service = DocumentService(db=db, user_id=user_id)
     return await service.save_pattern(template_id, name, description, is_section)
 
@@ -330,8 +388,7 @@ async def handle_process_documents_background(
 
     for doc in documents:
         result = await service.process_document(
-            template_id=doc["template_id"],
-            file_content=doc["content"]
+            template_id=doc["template_id"], file_content=doc["content"]
         )
         all_results.extend(result.get("extractions", []))
 
@@ -343,7 +400,7 @@ async def handle_process_documents_background(
     template_data = {
         "subject": subject,
         "title": "Extrações Concluídas",
-        "body_text": "As extrações foram finalizadas com sucesso."
+        "body_text": "As extrações foram finalizadas com sucesso.",
     }
 
     await send_email_with_attachment(
@@ -352,19 +409,21 @@ async def handle_process_documents_background(
         template_name="extraction_template.html",
         template_body=template_data,
         attachment_data=unified,
-        attachment_filename=attachment_filename
+        attachment_filename=attachment_filename,
     )
+
 
 def unify_extractions_by_nome(extractions, threshold=85):
     unified = []
 
-    for item in extractions:
+    for raw_item in extractions:
+        item = {k.lower(): v for k, v in raw_item.items()}
         nome = item.get("nome", "").strip()
         if not nome:
             continue
-        
+
         match_found = False
-        
+
         for u in unified:
             score = fuzz.ratio(nome.lower(), u["nome"].lower())
             if score >= threshold:
@@ -375,7 +434,7 @@ def unify_extractions_by_nome(extractions, threshold=85):
                         u[key] = value
                 match_found = True
                 break
-        
+
         if not match_found:
             unified.append(item.copy())
 
@@ -383,21 +442,25 @@ def unify_extractions_by_nome(extractions, threshold=85):
 
 
 async def handle_process_document_background(
-    db: Session, user_id: int, user_email: EmailStr,
-    template_id: int, file_content: bytes, document_name: str
+    db: Session,
+    user_id: int,
+    user_email: EmailStr,
+    template_id: int,
+    file_content: bytes,
+    document_name: str,
 ):
     service = DocumentService(db=db, user_id=user_id)
     extracted_data = await service.process_document(template_id, file_content)
 
-    doc_name_without_ext = document_name.rsplit('.', 1)[0]
-    
+    doc_name_without_ext = document_name.rsplit(".", 1)[0]
+
     subject = f"Extração Concluída: {document_name}"
     attachment_filename = f"extracao_{doc_name_without_ext}.csv"
-    
+
     template_data = {
         "subject": subject,
         "title": "Extração de Documento Concluída",
-        "body_text": f"A extração do documento '{document_name}' foi concluída com sucesso."
+        "body_text": f"A extração do documento '{document_name}' foi concluída com sucesso.",
     }
 
     await send_email_with_attachment(
@@ -406,5 +469,5 @@ async def handle_process_document_background(
         template_name="extraction_template.html",
         template_body=template_data,
         attachment_data=extracted_data.get("extractions", []),
-        attachment_filename=attachment_filename
+        attachment_filename=attachment_filename,
     )
