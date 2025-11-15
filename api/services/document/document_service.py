@@ -19,6 +19,8 @@ from core.email.email_service import send_email_with_attachment
 from pydantic import EmailStr
 import io
 import csv
+from rapidfuzz import fuzz
+
 
 logger = get_logger(__name__)
 
@@ -317,6 +319,68 @@ async def handle_delete_regex(db: Session, user_id: int, pattern_id: int):
 async def handle_save_pattern(db: Session, user_id: int, template_id:int, name: str, description: str, is_section: bool):
     service = DocumentService(db=db, user_id=user_id)
     return await service.save_pattern(template_id, name, description, is_section)
+
+
+async def handle_process_documents_background(
+    db: Session, user_id: int, user_email: EmailStr, documents: list
+):
+    service = DocumentService(db=db, user_id=user_id)
+
+    all_results = []
+
+    for doc in documents:
+        result = await service.process_document(
+            template_id=doc["template_id"],
+            file_content=doc["content"]
+        )
+        all_results.extend(result.get("extractions", []))
+
+    unified = unify_extractions_by_nome(all_results)
+
+    subject = f"Extração Concluída ({len(documents)} documentos)"
+    attachment_filename = "extracoes_unificadas.csv"
+
+    template_data = {
+        "subject": subject,
+        "title": "Extrações Concluídas",
+        "body_text": "As extrações foram finalizadas com sucesso."
+    }
+
+    await send_email_with_attachment(
+        email_to=user_email,
+        subject=subject,
+        template_name="extraction_template.html",
+        template_body=template_data,
+        attachment_data=unified,
+        attachment_filename=attachment_filename
+    )
+
+def unify_extractions_by_nome(extractions, threshold=85):
+    unified = []
+
+    for item in extractions:
+        nome = item.get("nome", "").strip()
+        if not nome:
+            continue
+        
+        match_found = False
+        
+        for u in unified:
+            score = fuzz.ratio(nome.lower(), u["nome"].lower())
+            if score >= threshold:
+                for key, value in item.items():
+                    if not value:
+                        continue
+                    if key not in u or len(str(u[key])) < len(str(value)):
+                        u[key] = value
+                match_found = True
+                break
+        
+        if not match_found:
+            unified.append(item.copy())
+
+    return unified
+
 
 async def handle_process_document_background(
     db: Session, user_id: int, user_email: EmailStr,
