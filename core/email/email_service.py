@@ -19,8 +19,9 @@ conf = ConnectionConfig(
     MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
-    TEMPLATE_FOLDER=Path(__file__).parent / "template"
+    TEMPLATE_FOLDER=Path(__file__).parent / "template",
 )
+
 
 async def send_email_with_attachment(
     email_to: EmailStr,
@@ -28,11 +29,11 @@ async def send_email_with_attachment(
     template_name: str,
     template_body: Dict[str, Any],
     attachment_data: List[Dict[str, Any]],
-    attachment_filename: str
+    attachment_filename: str,
 ):
     fm = FastMail(conf)
 
-    attachments = None
+    attachments = []
 
     if attachment_data:
         fieldnames = set()
@@ -63,7 +64,7 @@ async def send_email_with_attachment(
         recipients=[email_to],
         template_body=template_body,
         subtype=MessageType.html,
-        attachments=attachments
+        attachments=attachments,
     )
 
     await fm.send_message(message, template_name=template_name)
