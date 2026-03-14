@@ -1,5 +1,21 @@
-from pydantic import BaseModel
-from typing import List, Dict, Any
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 
-class ExtractionResponse(BaseModel):
-    extractions: List[Dict[str, str]]
+
+class ExtractionJobResponse(BaseModel):
+    id: int
+    status: str
+    document_count: int
+    created_at: datetime
+    results: dict | None = None
+    error_message: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ExtractionJobListItem(BaseModel):
+    id: int
+    templates_names: str
+    status: str
+    document_count: int
+    created_at: datetime

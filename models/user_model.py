@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Integer
 from sqlalchemy.orm import relationship
 from core.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -9,6 +10,5 @@ class User(Base):
     uid = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
 
-    documents = relationship("Document", back_populates="user")
-    patterns = relationship("Pattern", back_populates="user")
     templates = relationship("Template", back_populates="user")
+    jobs = relationship("ExtractionJob", back_populates="user")

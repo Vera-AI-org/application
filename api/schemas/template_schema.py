@@ -1,19 +1,34 @@
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime
-from typing import List, Dict, Any
 
-class TemplateCreateResponse(BaseModel):
+
+class FieldBase(BaseModel):
+    name: str
+    description: str
+    is_key: bool = False
+
+
+class FieldCreate(FieldBase):
+    pass
+
+
+class FieldResponse(FieldBase):
     id: int
-    user_id: int
-    name: str | None
-    created_at: datetime
-    updated_at: datetime | None 
-    patterns: List[Dict[str, Any]] | None = None
+    template_id: int
 
-    ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
-class TemplateDto(BaseModel):
+
+class TemplateBase(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class TemplateCreate(TemplateBase):
+    pass
+
+
+class TemplateResponse(TemplateBase):
     id: int
-    name: str | None
+    fields: list[FieldResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
