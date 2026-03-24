@@ -6,8 +6,7 @@ from pathlib import Path
 from io import BytesIO
 import csv
 import io
-from starlette.datastructures import UploadFile
-from io import BytesIO
+from starlette.datastructures import UploadFile, Headers
 
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -47,10 +46,12 @@ async def send_email_with_attachment(
         writer.writerows(attachment_data)
         buffer.seek(0)
 
+        file_bytes = buffer.getvalue().encode("utf-8")
         attachments = [
             UploadFile(
                 filename=attachment_filename,
-                file=BytesIO(buffer.getvalue().encode("utf-8")),
+                file=BytesIO(file_bytes),
+                headers=Headers({"content-type": "text/csv"}),
             )
         ]
 
